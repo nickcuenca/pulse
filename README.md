@@ -1,28 +1,34 @@
 # Pulse
 
-Backend observability platform: register services, ingest metrics, and receive threshold-based alerts.
+Pulse is a full-stack observability platform for registering services, ingesting metrics, and receiving threshold-based alerts. A React/TypeScript dashboard visualizes real-time metrics, alert states, and service health.
 
-## Tech stack (Phase 1)
+---
+
+## Tech Stack
 
 - **Backend:** Python, FastAPI, PostgreSQL, SQLAlchemy, Pydantic
-- **Run:** Docker, Docker Compose
-- **CI:** GitHub Actions (pytest on push)
+- **Frontend:** React, TypeScript, Recharts
+- **Infrastructure:** Docker, Docker Compose, GitHub Actions
 
-## Quick start (backend only)
+---
+
+## Quick Start
 
 ```bash
-# Start API + Postgres
 docker compose up --build
-
-# API: http://localhost:8000
-# Docs: http://localhost:8000/docs
 ```
 
-## API overview
+- API: http://localhost:8000
+- Dashboard: http://localhost:3000
+- API Docs: http://localhost:8000/docs
+
+---
+
+## API Overview
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | Health check `{"status": "ok"}` |
+| GET | `/health` | Health check |
 | POST | `/services` | Register a service |
 | GET | `/services` | List all services |
 | GET | `/services/{id}` | Get service by id |
@@ -31,31 +37,68 @@ docker compose up --build
 | POST | `/services/{id}/rules` | Create an alert rule |
 | GET | `/services/{id}/rules` | List rules for a service |
 | GET | `/services/{id}/alerts` | List alerts for a service (query: `state=ACTIVE\|RESOLVED`) |
-| GET | `/alerts` | List all alerts (query: `state=ACTIVE\|RESOLVED`) |
+| GET | `/alerts` | List all alerts |
 
-## Running tests
+---
+
+## Alert Evaluation
+
+After every metric ingestion, Pulse runs an evaluation pipeline:
+- Fetches all alert rules matching the service and metric name
+- Creates an `ACTIVE` alert if the threshold is breached and no active alert exists
+- Resolves the alert automatically when the value returns within bounds
+
+---
+
+## 📊 Performance
+
+Load tested with [Artillery](https://www.artillery.io/) across warm-up (10 req/s), sustained (50 req/s), and peak (100 req/s) phases.
+
+| Metric | Result |
+|---|---|
+| Sustained throughput | **1,500+ datapoints/min** |
+| p95 API latency | **<20ms** |
+| Alert detection time | **<1 second** |
+| Error rate (sustained) | **0%** |
+
+---
+
+## Running Tests
 
 ```bash
-# In repo root; uses in-memory SQLite by default
 pip install -r requirements.txt
-pytest tests/ -v
+PYTHONPATH=. pytest tests/ -v
 ```
 
-## Project layout (Phase 1)
+28 tests covering all endpoints, alert evaluation logic, and edge cases.
+
+---
+
+## Project Layout
 
 ```
 pulse/
 ├── api/
 │   ├── main.py
-│   ├── routers/ (services, metrics, rules, alerts)
+│   ├── routers/         # services, metrics, rules, alerts
 │   ├── models.py
 │   ├── schemas.py
 │   ├── database.py
-│   └── evaluation.py   # Alert evaluation on metric ingest
+│   └── evaluation.py    # Alert evaluation pipeline
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── components/
+│   │   │   ├── MetricsChart.tsx   # Recharts time-series, polls every 5s
+│   │   │   ├── ServiceList.tsx
+│   │   │   └── AlertsPanel.tsx    # ACTIVE/RESOLVED alerts, polls every 5s
+│   │   └── api.ts
+│   └── vite.config.ts
 ├── tests/
+├── load-test/
+│   └── load-test.yml
 ├── Dockerfile.api
-├── docker-compose.yml   # api + postgres
+├── Dockerfile.frontend
+├── docker-compose.yml
 └── .github/workflows/ci.yml
 ```
-
-Frontend, load-test, and AWS deployment are planned for later phases.

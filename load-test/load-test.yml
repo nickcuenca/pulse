@@ -1,0 +1,35 @@
+config:
+  target: "http://localhost:8000"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 50
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 100
+      name: "Peak load"
+
+scenarios:
+  - name: "Ingest metric and check alerts"
+    flow:
+      - post:
+          url: "/services"
+          headers:
+            Content-Type: "application/json"
+          json:
+            name: "load-test-{{ $randomString() }}"
+            description: "load test service"
+          capture:
+            - json: "$.id"
+              as: "serviceId"
+      - post:
+          url: "/services/{{ serviceId }}/metrics"
+          headers:
+            Content-Type: "application/json"
+          json:
+            name: "cpu_usage"
+            value: "{{ $randomNumber(10, 100) }}"
+      - get:
+          url: "/services/{{ serviceId }}/alerts"
