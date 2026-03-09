@@ -1,0 +1,17 @@
+.metrics-chart {
+  min-height: 80px;
+}
+
+.metrics-chart.loading,
+.metrics-chart.error {
+  color: #666;
+  padding: 16px;
+}
+
+.metrics-chart.error {
+  color: #c00;
+}
+
+.chart-wrap {
+  width: 100%;
+}
